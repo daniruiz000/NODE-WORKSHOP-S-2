@@ -1,1 +1,3 @@
-# NODE-WORKSHOP-S-2
+# node-simple-template
+
+Hola este es el repo de template
