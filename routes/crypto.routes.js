@@ -72,21 +72,21 @@ router.get("/:id", async (req, res) => {
 });
 
 // Ejemplo de REQ:
-// http://localhost:3000/book/id del book a buscar
+// http://localhost:3000/crypto/id del crypto a buscar
 
 //  ------------------------------------------------------------------------------------------
 
-//  Ruta para buscar un book por el title ( modelo.findById({firstName: name})) (CRUD: Operación Custom. No es CRUD):
+//  Ruta para buscar un crypto por el name ( modelo.findById({name: req.params.name})) (CRUD: Operación Custom. No es CRUD):
 
-router.get("/title/:title", async (req, res) => {
-  const title = req.params.title;
+router.get("/name/:name", async (req, res) => {
+  const name = req.params.name;
   // Si funciona la lectura...
   try {
-    const book = await Book.find({ title: new RegExp("^" + title.toLowerCase(), "i") }); //  Esperamos a que realice una busqueda en la que coincida el texto pasado por query params para la propiedad determinada pasada dentro de un objeto, porqué tenemos que pasar un objeto, sin importar mayusc o minusc.
-    if (book?.length) {
-      res.json(book); //  Si existe el book lo mandamos en la respuesta como un json.
+    const crypto = await Crypto.find({ name: new RegExp("^" + name.toLowerCase(), "i") }); //  Esperamos a que realice una busqueda en la que coincida el texto pasado por query params para la propiedad determinada pasada dentro de un objeto, porqué tenemos que pasar un objeto, sin importar mayusc o minusc.
+    if (crypto?.length) {
+      res.json(crypto); //  Si existe el crypto lo mandamos en la respuesta como un json.
     } else {
-      res.status(404).json([]); //   Si no existe el book se manda un json con un array vacio porque la respuesta en caso de haber tenido resultados hubiera sido un array y un mandamos un código 404.
+      res.status(404).json([]); //   Si no existe el crypto se manda un json con un array vacio porque la respuesta en caso de haber tenido resultados hubiera sido un array y un mandamos un código 404.
     }
 
     // Si falla la lectura...
@@ -97,7 +97,7 @@ router.get("/title/:title", async (req, res) => {
 });
 
 // Ejemplo de REQ:
-// http://localhost:3000/book/title/titulo del libro a buscar
+// http://localhost:3000/book/name/name del libro a buscar
 
 //  ------------------------------------------------------------------------------------------
 
@@ -126,15 +126,15 @@ price: 2230.16}
 
 //  ------------------------------------------------------------------------------------------
 
-//  Endpoint para eliminar book identificado por id (CRUD: DELETE):
+//  Endpoint para eliminar crypto identificado por id (CRUD: DELETE):
 
 router.delete("/:id", async (req, res) => {
   // Si funciona el borrado...
   try {
     const id = req.params.id; //  Recogemos el id de los parametros de la ruta.
-    const bookDeleted = await Book.findByIdAndDelete(id); // Esperamos a que nos devuelve la info del book eliminado que busca y elimina con el metodo findByIdAndDelete(id del book a eliminar).
-    if (bookDeleted) {
-      res.json(bookDeleted); //  Devolvemos el book eliminado en caso de que exista con ese id.
+    const cryptoDeleted = await Crypto.findByIdAndDelete(id); // Esperamos a que nos devuelve la info del crypto eliminado que busca y elimina con el metodo findByIdAndDelete(id del crypto a eliminar).
+    if (cryptoDeleted) {
+      res.json(cryptoDeleted); //  Devolvemos el crypto eliminado en caso de que exista con ese id.
     } else {
       res.status(404).json({}); //  Devolvemos un código 404 y un objeto vacio en caso de que no exista con ese id.
     }
@@ -146,9 +146,9 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-/* Petición tipo DELETE para eliminar un book  identificado por su id (no añadimos body a la busqueda y recogemos el id de los parametros de la ruta):
+/* Petición tipo DELETE para eliminar un crypto  identificado por su id (no añadimos body a la busqueda y recogemos el id de los parametros de la ruta):
 
-fetch("http://localhost:3000/book/id del book a borrar",{"method":"DELETE","headers":{"Accept":"application/json","Content-Type":"application/json"}}).then((data)=> console.log(data))
+fetch("http://localhost:3000/crypto/id del crypto a borrar",{"method":"DELETE","headers":{"Accept":"application/json","Content-Type":"application/json"}}).then((data)=> console.log(data))
 */
 
 //  ------------------------------------------------------------------------------------------
@@ -159,9 +159,9 @@ router.put("/:id", async (req, res) => {
   // Si funciona la actualización...
   try {
     const id = req.params.id; //  Recogemos el id de los parametros de la ruta.
-    const bookUpdated = await Book.findByIdAndUpdate(id, req.body, { new: true }); // Esperamos que devuelva la info del book actualizado al que tambien hemos pasado un objeto con los campos q tiene que acualizar en la req del body de la petición. {new: true} Le dice que nos mande el book actualizado no el antiguo. Lo busca y elimina con el metodo findByIdAndDelete(id del book a eliminar).
-    if (bookUpdated) {
-      res.json(bookUpdated); //  Devolvemos el book actualizado en caso de que exista con ese id.
+    const cryptoUpdated = await Crypto.findByIdAndUpdate(id, req.body, { new: true }); // Esperamos que devuelva la info del crypto actualizado al que tambien hemos pasado un objeto con los campos q tiene que acualizar en la req del body de la petición. {new: true} Le dice que nos mande el crypto actualizado no el antiguo. Lo busca y elimina con el metodo findByIdAndDelete(id del crypto a eliminar).
+    if (cryptoUpdated) {
+      res.json(cryptoUpdated); //  Devolvemos el crypto actualizado en caso de que exista con ese id.
     } else {
       res.status(404).json({}); //  Devolvemos un código 404 y un objeto vacio en caso de que no exista con ese id.
     }
@@ -174,9 +174,9 @@ router.put("/:id", async (req, res) => {
 });
 
 /* Petición tipo de PUT para actualizar datos concretos (en este caso el title) recogidos en el body,
-de un book en concreto (recogemos el id de los parametros de la ruta ):
+de un crypto en concreto (recogemos el id de los parametros de la ruta ):
 
-fetch("http://localhost:3000/book/id del book a actualizar",{"body": JSON.stringify({title:"El libro de las ilusiones."}),"method":"PUT","headers":{"Accept":"application/json","Content-Type":"application/json"}}).then((data)=> console.log(data))
+fetch("http://localhost:3000/crypto/id del crypto a actualizar",{"body": JSON.stringify({name:"Prueba"}),"method":"PUT","headers":{"Accept":"application/json","Content-Type":"application/json"}}).then((data)=> console.log(data))
 */
 
 //  ------------------------------------------------------------------------------------------
