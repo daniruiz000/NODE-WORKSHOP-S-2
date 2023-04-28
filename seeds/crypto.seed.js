@@ -38,7 +38,7 @@ const cryptoList = [
 //  Cuando nos conectemos ...
 const cryptoSeed = async () => {
   try {
-    const database = await connect();
+    await connect();
     await Crypto.collection.drop();
     console.log("Borrados cryptos");
     await Crypto.insertMany(cryptoList);
