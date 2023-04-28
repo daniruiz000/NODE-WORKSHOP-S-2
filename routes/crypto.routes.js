@@ -97,7 +97,7 @@ router.get("/name/:name", async (req, res) => {
 });
 
 // Ejemplo de REQ:
-// http://localhost:3000/book/name/name del libro a buscar
+// http://localhost:3000/crypto/name/name del crypto a buscar
 
 //  ------------------------------------------------------------------------------------------
 
