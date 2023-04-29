@@ -1,0 +1,336 @@
+{
+	"info": {
+		"_postman_id": "a7645788-a340-43d8-b149-0365d9c69e28",
+		"name": "NODE-S2-WORKSHOP-API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26678393"
+	},
+	"item": [
+		{
+			"name": "Crypto",
+			"item": [
+				{
+					"name": "Get Crypto",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto?page=1&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crypto in CSV",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/csv",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"csv"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crypto by Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/644cd25b5cf851eb1f548878",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"644cd25b5cf851eb1f548878"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crypto by Price Range",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/price-range?min=10&max=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"price-range"
+							],
+							"query": [
+								{
+									"key": "min",
+									"value": "10"
+								},
+								{
+									"key": "max",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crypto by Marketcap",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/price-range?min=10&max=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"price-range"
+							],
+							"query": [
+								{
+									"key": "min",
+									"value": "10"
+								},
+								{
+									"key": "max",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crypto by Created Date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/sorted-by-date?order=asc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"sorted-by-date"
+							],
+							"query": [
+								{
+									"key": "order",
+									"value": "asc"
+								},
+								{
+									"key": "order",
+									"value": "desc",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crypto by Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/name/Cardano",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"name",
+								"Cardano"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Crypto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"created_at\": \"2015-07-30T01:26:13.000Z\",\r\n\"marketCap\":55555555555,\r\n\"name\":\"Prueba Nombre\",\r\n\"price\": 55555}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/crypto",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Crypto",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\"name\":\"Prueba Actualiza Nombre\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/crypto/644cdc1d8ec63c0b0c599b8c",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"644cdc1d8ec63c0b0c599b8c"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Crypto by Id",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/644cdc1d8ec63c0b0c599b8c",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"644cdc1d8ec63c0b0c599b8c"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Crypto Seed",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/crypto/reset",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"crypto",
+								"reset"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Home",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000"
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
