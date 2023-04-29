@@ -25,8 +25,8 @@ routerHome.get("*", (req, res) => {
 });
 
 //  Usamos las rutas (el orden es importante más restrictivos a menos)
-server.use("/crypto", cryptoRouter); //  Le decimos al server que utilice el bookRouter importado para gestionar las rutas que tengan "/book"
-server.use("/", routerHome); //  Decimos al server que utilice el router en la raíz
+server.use("/crypto", cryptoRouter); //  Le decimos al server que utilice el cryptoRouter importado para gestionar las rutas que tengan "/crypto"
+server.use("/", routerHome); //  Decimos al server que utilice el routerHome en la raíz
 
 //  Levantamos el server en el puerto indicado
 server.listen(PORT, () => {

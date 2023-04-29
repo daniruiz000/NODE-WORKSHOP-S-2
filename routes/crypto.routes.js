@@ -7,6 +7,9 @@ const { Crypto } = require("../models/Crypto.js");
 // Router propio de book:
 const router = express.Router();
 
+const { cryptoSeed } = require("../utils/restCrypto");
+
+const { convertJsonToCsv } = require("../utils/convertToCsv.js");
 //  ------------------------------------------------------------------------------------------
 
 /*  Ruta para recuperar todos los books de manera paginada en función de un limite de elementos a mostrar
@@ -48,7 +51,122 @@ router.get("/", async (req, res) => {
 /* Ejemplo de REQ indicando que queremos la página 4 estableciendo un limite de 10 elementos
  por página (limit = 10 , pages = 4):
  http://localhost:3000/book?limit=10&page=4 */
+//  ------------------------------------------------------------------------------------------
 
+//  ------------------------------------------------------------------------------------------
+
+//  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
+
+router.get("/sorted-by-date", async (req, res) => {
+  // Si funciona ...
+
+  try {
+    const order = req.query.order;
+    const cryptoList = await Crypto.find();
+
+    if (cryptoList?.length) {
+      const cryptoListOrder = cryptoList.sort((a, b) => a.created_at - b.created_at);
+      switch (order) {
+        case "asc":
+          res.json(cryptoListOrder);
+          break;
+        case "desc":
+          res.json(cryptoListOrder.reverse());
+          break;
+        default:
+          res.json(cryptoListOrder);
+          break;
+      }
+    } else {
+      res.status(404).json([]);
+    }
+
+    // Si falla ...
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+  }
+});
+//  ------------------------------------------------------------------------------------------
+//  ------------------------------------------------------------------------------------------
+
+//  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
+
+router.get("/sorted-by-marketcap", async (req, res) => {
+  // Si funciona ...
+
+  try {
+    const order = req.query.order;
+    const cryptoList = await Crypto.find();
+
+    if (cryptoList?.length) {
+      const cryptoListOrder = cryptoList.sort((a, b) => a.marketCap - b.marketCap);
+      switch (order) {
+        case "asc":
+          res.json(cryptoListOrder);
+          break;
+        case "desc":
+          res.json(cryptoListOrder.reverse());
+          break;
+        default:
+          res.json(cryptoListOrder);
+          break;
+      }
+    } else {
+      res.status(404).json([]);
+    }
+
+    // Si falla ...
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+  }
+});
+//  ------------------------------------------------------------------------------------------
+
+//  Endpoint para ordenar los datos recibidos de los crypto en función de su price range:
+
+router.get("/price-range", async (req, res) => {
+  // Si funciona ...
+  try {
+    const min = parseInt(req.query.min);
+    const max = parseInt(req.query.max);
+    // console.log(min, max);
+    // res.send("datos price order ---- min= " + min + " max= " + max);
+    const cryptoList = await Crypto.find();
+    // res.json(cryptoList);
+    if (cryptoList?.length > 1) {
+      const sortedCryptoListPriceRange = cryptoList.filter((element) => min < element.price && element.price < max);
+      res.json(sortedCryptoListPriceRange);
+      console.log(sortedCryptoListPriceRange, min, max);
+    } else {
+      res.status(404).json([]);
+    }
+    // Si falla ...
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+  }
+});
+
+//  Endpoint para transformar los datos recibidos de los crypto de json a formato csv:
+
+router.get("/csv", async (req, res) => {
+  // Si funciona el parseo...
+  try {
+    const cryptoList = await Crypto.find(); // Devolvemos los crypto si funciona. Con modelo.find().
+    if (cryptoList?.length) {
+      const response = convertJsonToCsv(cryptoList); // Convertimos a formato csv
+      res.send(response); // Enviamos la respuesta.
+    }
+
+    // Si falla el parseo...
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el parseo de datos y el error.
+  }
+});
+//  ------------------------------------------------------------------------------------------
 //  ------------------------------------------------------------------------------------------
 
 //  Ruta para recuperar un crypto en concreto a través de su id ( modelo.findById(id)) (CRUD: READ):
@@ -123,6 +241,20 @@ marketCap:258082329474,
 name:"Ethereum",
 price: 2230.16}
  fetch("http://localhost:3000/crypto/",{"body": JSON.stringify(newCrypto),"method":"POST","headers":{"Accept":"application/json","Content-Type":"application/json"}}).then((data)=> console.log(data)) */
+
+//  Endpoint para resetear los datos ejecutando cryptos:
+router.delete("/reset", async (req, res) => {
+  // Si funciona el reseteo...
+  try {
+    await cryptoSeed();
+    res.send("Datos Crypto reseteados");
+
+    // Si falla el reseteo...
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+  }
+});
 
 //  ------------------------------------------------------------------------------------------
 
