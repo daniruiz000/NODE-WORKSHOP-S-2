@@ -78,22 +78,13 @@ router.get("/sorted-by-date", async (req, res) => {
 
   try {
     const order = req.query.order;
-    const cryptoListOrder = await Crypto.find().sort({ created_at: 1 });
+
     if (order && order !== "asc" && order !== "desc") {
       res.status(400).json({});
     } else {
+      const cryptoListOrder = await Crypto.find().sort({ created_at: order });
       if (cryptoListOrder?.length) {
-        switch (order) {
-          case "asc":
-            res.json(cryptoListOrder);
-            break;
-          case "desc":
-            res.json(cryptoListOrder.reverse());
-            break;
-          default:
-            res.json(cryptoListOrder);
-            break;
-        }
+        res.json(cryptoListOrder);
       } else {
         res.status(404).json([]);
       }
@@ -115,22 +106,13 @@ router.get("/sorted-by-marketcap", async (req, res) => {
 
   try {
     const order = req.query.order;
-    const cryptoListOrder = await Crypto.find().sort({ marketCap: 1 });
+
     if (order && order !== "asc" && order !== "desc") {
       res.status(400).json({});
     } else {
+      const cryptoListOrder = await Crypto.find().sort({ matchMedia: order });
       if (cryptoListOrder?.length) {
-        switch (order) {
-          case "asc":
-            res.json(cryptoListOrder);
-            break;
-          case "desc":
-            res.json(cryptoListOrder.reverse());
-            break;
-          default:
-            res.json(cryptoListOrder);
-            break;
-        }
+        res.json(cryptoListOrder);
       } else {
         res.status(404).json([]);
       }
