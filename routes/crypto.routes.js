@@ -63,22 +63,25 @@ router.get("/sorted-by-date", async (req, res) => {
   try {
     const order = req.query.order;
     const cryptoList = await Crypto.find();
-
-    if (cryptoList?.length) {
-      const cryptoListOrder = cryptoList.sort((a, b) => a.created_at - b.created_at);
-      switch (order) {
-        case "asc":
-          res.json(cryptoListOrder);
-          break;
-        case "desc":
-          res.json(cryptoListOrder.reverse());
-          break;
-        default:
-          res.json(cryptoListOrder);
-          break;
-      }
+    if (order && order !== "asc" && order !== "desc") {
+      res.status(400).json({});
     } else {
-      res.status(404).json([]);
+      if (cryptoList?.length) {
+        const cryptoListOrder = cryptoList.sort((a, b) => a.created_at - b.created_at);
+        switch (order) {
+          case "asc":
+            res.json(cryptoListOrder);
+            break;
+          case "desc":
+            res.json(cryptoListOrder.reverse());
+            break;
+          default:
+            res.json(cryptoListOrder);
+            break;
+        }
+      } else {
+        res.status(404).json([]);
+      }
     }
 
     // Si falla ...
@@ -98,24 +101,26 @@ router.get("/sorted-by-marketcap", async (req, res) => {
   try {
     const order = req.query.order;
     const cryptoList = await Crypto.find();
-
-    if (cryptoList?.length) {
-      const cryptoListOrder = cryptoList.sort((a, b) => a.marketCap - b.marketCap);
-      switch (order) {
-        case "asc":
-          res.json(cryptoListOrder);
-          break;
-        case "desc":
-          res.json(cryptoListOrder.reverse());
-          break;
-        default:
-          res.json(cryptoListOrder);
-          break;
-      }
+    if (order && order !== "asc" && order !== "desc") {
+      res.status(400).json({});
     } else {
-      res.status(404).json([]);
+      if (cryptoList?.length) {
+        const cryptoListOrder = cryptoList.sort((a, b) => a.marketCap - b.marketCap);
+        switch (order) {
+          case "asc":
+            res.json(cryptoListOrder);
+            break;
+          case "desc":
+            res.json(cryptoListOrder.reverse());
+            break;
+          default:
+            res.json(cryptoListOrder);
+            break;
+        }
+      } else {
+        res.status(404).json([]);
+      }
     }
-
     // Si falla ...
   } catch (error) {
     console.error(error);
