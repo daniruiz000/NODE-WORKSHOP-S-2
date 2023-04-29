@@ -12,7 +12,7 @@ const { cryptoSeed } = require("../utils/restCrypto");
 const { convertJsonToCsv } = require("../utils/convertToCsv.js");
 //  ------------------------------------------------------------------------------------------
 
-/*  Ruta para recuperar todos los books de manera paginada en función de un limite de elementos a mostrar
+/*  Endpoint para recuperar todos los books de manera paginada en función de un limite de elementos a mostrar
 por página para no saturar al navegador (CRUD: READ):
 */
 
@@ -51,11 +51,10 @@ router.get("/", async (req, res) => {
 /* Ejemplo de REQ indicando que queremos la página 4 estableciendo un limite de 10 elementos
  por página (limit = 10 , pages = 4):
  http://localhost:3000/book?limit=10&page=4 */
-//  ------------------------------------------------------------------------------------------
 
 //  ------------------------------------------------------------------------------------------
 
-//  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
+//  Endpoint para ordenar los datos recibidos de los crypto en funcion del número de monedas en circulación:
 
 router.get("/coins", async (req, res) => {
   // Si funciona ...
@@ -71,7 +70,7 @@ router.get("/coins", async (req, res) => {
 
 //  ------------------------------------------------------------------------------------------
 
-//  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
+//  Endpoint para ordenar los datos recibidos de los crypto en funcion de la fecha de creación de la moneda:
 
 router.get("/sorted-by-date", async (req, res) => {
   // Si funciona ...
@@ -96,7 +95,7 @@ router.get("/sorted-by-date", async (req, res) => {
     res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
   }
 });
-//  ------------------------------------------------------------------------------------------
+
 //  ------------------------------------------------------------------------------------------
 
 //  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
@@ -110,7 +109,7 @@ router.get("/sorted-by-marketcap", async (req, res) => {
     if (order && order !== "asc" && order !== "desc") {
       res.status(400).json({});
     } else {
-      const cryptoListOrder = await Crypto.find().sort({ matchMedia: order });
+      const cryptoListOrder = await Crypto.find().sort({ marketCap: order });
       if (cryptoListOrder?.length) {
         res.json(cryptoListOrder);
       } else {
@@ -123,6 +122,7 @@ router.get("/sorted-by-marketcap", async (req, res) => {
     res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
   }
 });
+
 //  ------------------------------------------------------------------------------------------
 
 //  Endpoint para ordenar los datos recibidos de los crypto en función de su price range:
@@ -147,6 +147,8 @@ router.get("/price-range", async (req, res) => {
   }
 });
 
+//  ------------------------------------------------------------------------------------------
+
 //  Endpoint para transformar los datos recibidos de los crypto de json a formato csv:
 
 router.get("/csv", async (req, res) => {
@@ -164,7 +166,7 @@ router.get("/csv", async (req, res) => {
     res.status(500).json(error); //  Devolvemos un código 500 de error si falla el parseo de datos y el error.
   }
 });
-//  ------------------------------------------------------------------------------------------
+
 //  ------------------------------------------------------------------------------------------
 
 //  Ruta para recuperar un crypto en concreto a través de su id ( modelo.findById(id)) (CRUD: READ):
@@ -192,7 +194,7 @@ router.get("/:id", async (req, res) => {
 
 //  ------------------------------------------------------------------------------------------
 
-//  Ruta para buscar un crypto por el name ( modelo.findById({name: req.params.name})) (CRUD: Operación Custom. No es CRUD):
+//  Endpoint para buscar un crypto por el name ( modelo.findById({name: req.params.name})) (CRUD: Operación Custom. No es CRUD):
 
 router.get("/name/:name", async (req, res) => {
   const name = req.params.name;
@@ -217,7 +219,7 @@ router.get("/name/:name", async (req, res) => {
 
 //  ------------------------------------------------------------------------------------------
 
-//  Ruta para añadir elementos (CRUD: CREATE):
+//  Endpoint para añadir elementos (CRUD: CREATE):
 
 router.post("/", async (req, res) => {
   // Si funciona la escritura...
@@ -240,7 +242,10 @@ name:"Ethereum",
 price: 2230.16}
  fetch("http://localhost:3000/crypto/",{"body": JSON.stringify(newCrypto),"method":"POST","headers":{"Accept":"application/json","Content-Type":"application/json"}}).then((data)=> console.log(data)) */
 
+//  ------------------------------------------------------------------------------------------
+
 //  Endpoint para resetear los datos ejecutando cryptos:
+
 router.delete("/reset", async (req, res) => {
   // Si funciona el reseteo...
   try {
@@ -310,5 +315,6 @@ fetch("http://localhost:3000/crypto/id del crypto a actualizar",{"body": JSON.st
 */
 
 //  ------------------------------------------------------------------------------------------
+
 // Exportamos
 module.exports = { cryptoRouter: router };

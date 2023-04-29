@@ -3,9 +3,14 @@ const { connect } = require("../db.js");
 const { default: mongoose } = require("mongoose");
 
 const seedFunction = async () => {
-  await connect();
-  await cryptoSeed();
-  await mongoose.disconnect();
+  try {
+    await connect();
+    await cryptoSeed();
+  } catch (error) {
+    console(error);
+  } finally {
+    await mongoose.disconnect();
+  }
 };
 
 seedFunction();
