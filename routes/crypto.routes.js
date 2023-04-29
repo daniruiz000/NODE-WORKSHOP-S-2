@@ -69,7 +69,7 @@ router.get("/coins", async (req, res) => {
 });
 
 //  ----------------------------------------------------------------------------------------
---
+
 //  Endpoint para ordenar los datos recibidos de los crypto en funcion de la fecha de creación de la moneda:
 
 router.get("/sorted-by-date", async (req, res) => {
