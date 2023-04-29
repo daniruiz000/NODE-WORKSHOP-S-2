@@ -57,17 +57,32 @@ router.get("/", async (req, res) => {
 
 //  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
 
+router.get("/coins", async (req, res) => {
+  // Si funciona ...
+  res.send("Crypto coins");
+
+  try {
+    // Si falla ...
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+  }
+});
+
+//  ------------------------------------------------------------------------------------------
+
+//  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
+
 router.get("/sorted-by-date", async (req, res) => {
   // Si funciona ...
 
   try {
     const order = req.query.order;
-    const cryptoList = await Crypto.find();
+    const cryptoListOrder = await Crypto.find().sort({ created_at: 1 });
     if (order && order !== "asc" && order !== "desc") {
       res.status(400).json({});
     } else {
-      if (cryptoList?.length) {
-        const cryptoListOrder = cryptoList.sort((a, b) => a.created_at - b.created_at);
+      if (cryptoListOrder?.length) {
         switch (order) {
           case "asc":
             res.json(cryptoListOrder);
@@ -100,12 +115,11 @@ router.get("/sorted-by-marketcap", async (req, res) => {
 
   try {
     const order = req.query.order;
-    const cryptoList = await Crypto.find();
+    const cryptoListOrder = await Crypto.find().sort({ marketCap: 1 });
     if (order && order !== "asc" && order !== "desc") {
       res.status(400).json({});
     } else {
-      if (cryptoList?.length) {
-        const cryptoListOrder = cryptoList.sort((a, b) => a.marketCap - b.marketCap);
+      if (cryptoListOrder?.length) {
         switch (order) {
           case "asc":
             res.json(cryptoListOrder);
@@ -136,14 +150,11 @@ router.get("/price-range", async (req, res) => {
   try {
     const min = parseInt(req.query.min);
     const max = parseInt(req.query.max);
-    // console.log(min, max);
-    // res.send("datos price order ---- min= " + min + " max= " + max);
-    const cryptoList = await Crypto.find();
-    // res.json(cryptoList);
-    if (cryptoList?.length > 1) {
-      const sortedCryptoListPriceRange = cryptoList.filter((element) => min < element.price && element.price < max);
+
+    const sortedCryptoListPriceRange = await Crypto.find({ price: { $gt: min, $lt: max } });
+
+    if (sortedCryptoListPriceRange?.length > 1) {
       res.json(sortedCryptoListPriceRange);
-      console.log(sortedCryptoListPriceRange, min, max);
     } else {
       res.status(404).json([]);
     }
