@@ -24,13 +24,16 @@ router.get("/", async (req, res) => {
   // Si funciona la lectura...
   try {
     // Recogemos las query params de esta manera req.query.parametro.
-    const page = req.query.page;
-    const limit = parseInt(req.query.limit);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     const cryptoList = await Crypto.find() // Devolvemos los books si funciona. Con modelo.find().
       .limit(limit) // La función limit se ejecuta sobre el .find() y le dice que coga un número limitado de elementos, coge desde el inicio a no ser que le añadamos...
       .skip((page - 1) * limit); // La función skip() se ejecuta sobre el .find() y se salta un número determinado de elementos y con este cálculo podemos paginar en función del limit.
 
+    if (cryptoList.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
+    }
     //  Creamos una respuesta más completa con info de la API y los datos solicitados por el usuario:
     const totalElements = await Crypto.countDocuments(); //  Esperamos aque realice el conteo del número total de elementos con modelo.countDocuments()
     const totalPagesByLimit = Math.ceil(totalElements / limit); // Para saber el número total de páginas que se generan en función del limit. Math.ceil() nos elimina los decimales.
@@ -58,58 +61,74 @@ router.get("/", async (req, res) => {
  http://localhost:3000/book?limit=10&page=4 */
 
 //  ------------------------------------------------------------------------------------------
+// Endpoint para recuperar todos los crypto de manera paginada en función dy los query params y del número de monedas en circulación:
 router.get("/coins", async (req, res) => {
   try {
+    // Recogemos las query params de esta manera req.query.parametro.
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const order = req.query.order || "desc";
     const min = parseInt(req.query.min);
     const max = parseInt(req.query.max);
+    let all = false;
 
-    // Validación de datos
+    //  Validaciones de query params:
     if (order !== "asc" && order !== "desc") {
       return res.status(400).send("Orden no correcto. Indica el orden con asc || desc");
     }
-
-    if (isNaN(min) || isNaN(max) || min >= max) {
-      return res.status(400).send("Los valores mínimos y máximos deben ser proporcionados y deben ser números y el mínimo debe ser menor que el máximo");
+    if (!min || !max) {
+      all = true;
+    }
+    if (min >= max) {
+      return res.status(400).send("Los valores mínimos y deben ser números y el mínimo debe ser menor que el máximo");
     }
 
-    const cryptoList = await Crypto.find({}).lean();
+    // Leemos los datos:
+    const cryptoList = await Crypto.find({}).lean(); //  Con .lean( nos devuelve datos más ligeros de los documentos que solicitamos.
 
-    if (cryptoList?.length) {
-      const formattedCryptoList = cryptoList.map((crypto) => {
-        const circulatingSupply = crypto.marketCap / crypto.price;
-        return {
-          ...crypto,
-          circulatingSupply,
-        };
-      });
-
-      const filteredCryptoList = formattedCryptoList.filter((crypto) => {
-        return crypto.circulatingSupply > min && crypto.circulatingSupply < max;
-      });
-
-      const orderedCryptoList = order === "asc" ? filteredCryptoList.sort((a, b) => a.circulatingSupply - b.circulatingSupply) : filteredCryptoList.sort((a, b) => b.circulatingSupply - a.circulatingSupply);
-
-      const count = orderedCryptoList.length;
-      const start = (page - 1) * limit;
-      const end = page * limit;
-      const pagedCryptoList = orderedCryptoList.slice(start, end);
-
-      const totalPages = Math.ceil(count / limit);
-
-      const response = {
-        totalItems: count,
-        totalPages,
-        currentPage: page,
-        totalItemPage: pagedCryptoList.length,
-        cryptoList: pagedCryptoList,
+    // Mapeamos los datos y añadimos una nueva propiedad coins a cada uno que calcula las monedas en circulación:
+    const formattedCryptoList = cryptoList.map((crypto) => {
+      const coins = crypto.marketCap / crypto.price;
+      return {
+        ...crypto,
+        coins,
       };
-      res.json(response);
+    });
+
+    // Filtramos los resultados en función del valor de la nueva propiedad coins creada y del min y del max aportado por el usuario:
+    let filteredCryptoList = [];
+    if (all === false) {
+      filteredCryptoList = formattedCryptoList.filter((crypto) => crypto.coins > min && crypto.coins < max);
     } else {
-      res.status(404).json([]);
+      filteredCryptoList = formattedCryptoList;
     }
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (filteredCryptoList.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
+    }
+
+    // Ordenamos el array en función de order y del valor de la nueva propiedad coins creada:
+    const orderedCryptoList = order === "asc" ? filteredCryptoList.sort((a, b) => a.coins - b.coins) : filteredCryptoList.sort((a, b) => b.coins - a.coins);
+
+    // Obtenemos la lista de criptomonedas correspondiente a la página solicitada:
+    const start = (page - 1) * limit;
+    const end = page * limit;
+    const pagedOrderedCryptoList = orderedCryptoList.slice(start, end);
+
+    // Preparamos una respuesta completa:
+    const count = orderedCryptoList.length;
+    const totalPages = Math.ceil(count / limit);
+
+    const response = {
+      totalItems: count,
+      totalPages,
+      currentPage: page,
+      totalItemPage: pagedOrderedCryptoList.length,
+      cryptoList: pagedOrderedCryptoList,
+    };
+    //  Mandamos la respuesta completa:
+    res.json(response);
+    //  Si falla...
   } catch (error) {
     console.error(error);
     res.status(500).json(error);
@@ -118,41 +137,43 @@ router.get("/coins", async (req, res) => {
 
 //  ----------------------------------------------------------------------------------------
 
-//  Endpoint para ordenar los datos recibidos de los crypto en funcion de la fecha de creación de la moneda:
+//  Endpoint para ordenar los datos recibidos de los crypto en funcion de la fecha de creación de la moneda y los query params:
 
 router.get("/sorted-by-date", async (req, res) => {
   // Si funciona ...
-
   try {
     const page = req.query.page;
     const limit = parseInt(req.query.limit);
     const order = req.query.order;
+
+    //  Validaciones de query params:
     if (order !== "asc" && order !== "desc") {
       res.status(400).json({});
-    } else {
-      const totalElements = await Crypto.countDocuments();
-      if (totalElements) {
-        const totalPagesByLimit = Math.ceil(totalElements / limit);
-        const cryptoListOrder = await Crypto.find()
-          .sort({ created_at: order })
-          .limit(limit)
-          .skip((page - 1) * limit);
-        if (cryptoListOrder?.length) {
-          const response = {
-            totalItems: totalElements,
-            totalPages: totalPagesByLimit,
-            currentPage: page,
-            totalItemPage: limit,
-            data: cryptoListOrder,
-          };
-          res.json(response);
-        } else {
-          res.status(404).json([]);
-        }
-      } else {
-        res.status(404).json([]);
-      }
     }
+
+    // Leemos los datos los ordenamos y limitamos los que se enseñan en función del limt y la page y contamos los documentos que existen con los parametros pasados:
+    const totalElements = await Crypto.countDocuments();
+    const cryptoListOrder = await Crypto.find()
+      .sort({ created_at: order })
+      .limit(limit)
+      .skip((page - 1) * limit);
+
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (cryptoListOrder.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
+    }
+
+    //  Preparamos una respuesta completa:
+    const totalPagesByLimit = Math.ceil(totalElements / limit);
+    const response = {
+      totalItems: totalElements,
+      totalPages: totalPagesByLimit,
+      currentPage: page,
+      totalItemPage: limit,
+      data: cryptoListOrder,
+    };
+    //  Enviamos la respuesta completa:
+    res.json(response);
 
     // Si falla ...
   } catch (error) {
@@ -163,7 +184,7 @@ router.get("/sorted-by-date", async (req, res) => {
 
 //  ------------------------------------------------------------------------------------------
 
-//  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap:
+//  Endpoint para ordenar los datos recibidos de los crypto en funcion del marketcap y los query params:
 
 router.get("/sorted-by-marketcap", async (req, res) => {
   // Si funciona ...
@@ -175,7 +196,7 @@ router.get("/sorted-by-marketcap", async (req, res) => {
     const max = req.query.max;
     const skip = (page - 1) * limit;
 
-    // Validación de datos
+    //  Validaciones de query params:
     if (order !== "asc" && order !== "desc") {
       return res.status(400).send("Orden no correcto. Indica el orden con asc || desc");
     }
@@ -187,26 +208,33 @@ router.get("/sorted-by-marketcap", async (req, res) => {
       return res.status(400).send("El mínimo debe ser menor que el máximo");
     }
 
+    // Leemos los datos y contamos los documentos que existen con los parametros pasados:
     const count = await Crypto.countDocuments({ marketCap: { $gt: min, $lt: max } });
     const cryptoList = await Crypto.find({ marketCap: { $gt: min, $lt: max } })
       .sort({ marketCap: order })
       .skip(skip)
       .limit(limit);
 
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (cryptoList.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
+    }
+    //  Preparamos una respuesta completa:
+
     const totalPages = Math.ceil(count / limit);
 
-    if (cryptoList?.length) {
-      const response = {
-        totalItems: count,
-        totalPages,
-        currentPage: parseInt(page),
-        totalItemPage: cryptoList.length,
-        cryptoList,
-      };
-      res.json(response);
-    } else {
-      res.status(404).json([]);
-    }
+    const response = {
+      totalItems: count,
+      totalPages,
+      currentPage: parseInt(page),
+      totalItemPage: cryptoList.length,
+      cryptoList,
+    };
+    //  Enviamos la respuesta completa:
+    res.json(response);
+    // Si no existen documentos con esos parámetros...
+
+    //  Si falla...
   } catch (error) {
     console.error(error);
     res.status(500).json(error);
@@ -215,7 +243,7 @@ router.get("/sorted-by-marketcap", async (req, res) => {
 
 //  ------------------------------------------------------------------------------------------
 
-//  Endpoint para ordenar los datos recibidos de los crypto en función de su price range:
+//  Endpoint para ordenar los datos recibidos de los crypto en función de su price range y los query params:
 router.get("/price-range", async (req, res) => {
   try {
     const page = req.query.page || 1;
@@ -225,38 +253,42 @@ router.get("/price-range", async (req, res) => {
     const max = req.query.max;
     const skip = (page - 1) * limit;
 
-    // Validación de datos
+    // Validación de query params:
     if (order !== "asc" && order !== "desc") {
       return res.status(400).send("Orden no correcto. Indica el orden con asc || desc");
     }
     if (!min || !max || isNaN(parseInt(min)) || isNaN(parseInt(max))) {
       return res.status(400).send("Los valores mínimos y máximos deben ser proporcionados y deben ser números");
     }
-
     if (parseInt(min) >= parseInt(max)) {
       return res.status(400).send("El mínimo debe ser menor que el máximo");
     }
 
+    // Leemos los datos y contamos los documentos que existen con los parametros pasados:
     const count = await Crypto.countDocuments({ price: { $gt: min, $lt: max } });
     const cryptoList = await Crypto.find({ price: { $gt: min, $lt: max } })
       .sort({ price: order })
       .skip(skip)
       .limit(limit);
 
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (cryptoList.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
+    }
+    //  Preparamos una respuesta completa:
     const totalPages = Math.ceil(count / limit);
 
-    if (cryptoList?.length) {
-      const response = {
-        totalItems: count,
-        totalPages,
-        currentPage: parseInt(page),
-        totalItemPage: cryptoList.length,
-        cryptoList,
-      };
-      res.json(response);
-    } else {
-      res.status(404).json([]);
-    }
+    const response = {
+      totalItems: count,
+      totalPages,
+      currentPage: parseInt(page),
+      totalItemPage: cryptoList.length,
+      cryptoList,
+    };
+    //  Enviamos la respuesta completa:
+    res.json(response);
+
+    //  Si falla...
   } catch (error) {
     console.error(error);
     res.status(500).json(error);
@@ -271,10 +303,12 @@ router.get("/csv", async (req, res) => {
   // Si funciona el parseo...
   try {
     const cryptoList = await Crypto.find(); // Devolvemos los crypto si funciona. Con modelo.find().
-    if (cryptoList?.length) {
-      const response = convertJsonToCsv(cryptoList); // Convertimos a formato csv
-      res.send(response); // Enviamos la respuesta.
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (cryptoList.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
     }
+    const response = convertJsonToCsv(cryptoList); // Convertimos a formato csv
+    res.send(response); // Enviamos la respuesta.
 
     // Si falla el parseo...
   } catch (error) {
@@ -292,11 +326,11 @@ router.get("/:id", async (req, res) => {
   try {
     const id = req.params.id; //  Recogemos el id de los parametros de la ruta.
     const crypto = await Crypto.findById(id); //  Buscamos un book con un id determinado dentro de nuestro modelo con modelo.findById(id a buscar).
-    if (crypto) {
-      res.json(crypto); //  Si existe el book lo mandamos como respuesta en modo json.
-    } else {
-      res.status(404).json({}); //    Si no existe el book se manda un json vacio y un código 400.
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (crypto.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
     }
+    res.json(crypto); //  Si existe el book lo mandamos como respuesta en modo json.
 
     // Si falla la lectura...
   } catch (error) {
@@ -317,11 +351,11 @@ router.get("/name/:name", async (req, res) => {
   // Si funciona la lectura...
   try {
     const crypto = await Crypto.find({ name: new RegExp("^" + name.toLowerCase(), "i") }); //  Esperamos a que realice una busqueda en la que coincida el texto pasado por query params para la propiedad determinada pasada dentro de un objeto, porqué tenemos que pasar un objeto, sin importar mayusc o minusc.
-    if (crypto?.length) {
-      res.json(crypto); //  Si existe el crypto lo mandamos en la respuesta como un json.
-    } else {
-      res.status(404).json([]); //   Si no existe el crypto se manda un json con un array vacio porque la respuesta en caso de haber tenido resultados hubiera sido un array y un mandamos un código 404.
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (crypto.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
     }
+    res.json(crypto); //  Si existe el crypto lo mandamos en la respuesta como un json.
 
     // Si falla la lectura...
   } catch (error) {
@@ -385,11 +419,11 @@ router.delete("/:id", async (req, res) => {
   try {
     const id = req.params.id; //  Recogemos el id de los parametros de la ruta.
     const cryptoDeleted = await Crypto.findByIdAndDelete(id); // Esperamos a que nos devuelve la info del crypto eliminado que busca y elimina con el metodo findByIdAndDelete(id del crypto a eliminar).
-    if (cryptoDeleted) {
-      res.json(cryptoDeleted); //  Devolvemos el crypto eliminado en caso de que exista con ese id.
-    } else {
-      res.status(404).json({}); //  Devolvemos un código 404 y un objeto vacio en caso de que no exista con ese id.
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (cryptoDeleted.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
     }
+    res.json(cryptoDeleted); //  Devolvemos el crypto eliminado en caso de que exista con ese id.
 
     // Si falla el borrado...
   } catch (error) {
@@ -412,11 +446,11 @@ router.put("/:id", async (req, res) => {
   try {
     const id = req.params.id; //  Recogemos el id de los parametros de la ruta.
     const cryptoUpdated = await Crypto.findByIdAndUpdate(id, req.body, { new: true }); // Esperamos que devuelva la info del crypto actualizado al que tambien hemos pasado un objeto con los campos q tiene que acualizar en la req del body de la petición. {new: true} Le dice que nos mande el crypto actualizado no el antiguo. Lo busca y elimina con el metodo findByIdAndDelete(id del crypto a eliminar).
-    if (cryptoUpdated) {
-      res.json(cryptoUpdated); //  Devolvemos el crypto actualizado en caso de que exista con ese id.
-    } else {
-      res.status(404).json({}); //  Devolvemos un código 404 y un objeto vacio en caso de que no exista con ese id.
+    // Si no hay monedas que cumplan con los parámetros de búsqueda, devolvemos un mensaje adecuado:
+    if (cryptoUpdated.length === 0) {
+      return res.status(404).send("No se encontraron monedas que cumplan con los parámetros de búsqueda.");
     }
+    res.json(cryptoUpdated); //  Devolvemos el crypto actualizado en caso de que exista con ese id.
 
     // Si falla la actualización...
   } catch (error) {
