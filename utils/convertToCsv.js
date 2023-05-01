@@ -1,30 +1,13 @@
-const createCsvStringifier = require("csv-writer").createObjectCsvStringifier;
+const convertJsonToCsv = (jsonData) => {
+  const header = ["name", "price", "marketCap", "created_at"].join(",") + "\n";
 
-function convertJsonToCsv(jsonData) {
-  if (jsonData !== undefined) {
-    const csvStringifier = createCsvStringifier({
-      header: [
-        { id: "name", title: "Name" },
-        { id: "price", title: "Price" },
-        { id: "marketCap", title: "Market Cap" },
-        { id: "created_at", title: "Created At" },
-      ],
-    });
+  // Generamos las filas del CSV
+  const rows = jsonData.map((crypto) => [crypto.name, crypto.price, crypto.marketCap, crypto.created_at].join(",") + "\n").join("");
 
-    const csvData = jsonData.map((element) => {
-      const values = {
-        name: element.name,
-        price: element.price,
-        marketCap: element.marketCap,
-        created_at: element.created_at,
-      };
-      return values;
-    });
+  // Unimos la cabecera y las filas en un único string
+  const csv = header + rows;
 
-    const csv = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(csvData);
-
-    return csv;
-  }
-}
+  return csv;
+};
 
 module.exports = { convertJsonToCsv };

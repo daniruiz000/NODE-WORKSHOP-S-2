@@ -7,9 +7,13 @@ const { Crypto } = require("../models/Crypto.js");
 // Router propio de book:
 const router = express.Router();
 
+//  Funciones:
 const { cryptoSeed } = require("../utils/restCrypto");
 
 const { convertJsonToCsv } = require("../utils/convertToCsv.js");
+
+//  ------------------------------------------------------------------------------------------
+//  ---------------------------- ENDPOINTS ---------------------------------------------------
 //  ------------------------------------------------------------------------------------------
 
 /*  Endpoint para recuperar todos los books de manera paginada en función de un limite de elementos a mostrar
@@ -36,6 +40,7 @@ router.get("/", async (req, res) => {
       totalItems: totalElements,
       totalPages: totalPagesByLimit,
       currentPage: page,
+      totalItemPage: limit,
       data: cryptoList,
     };
     // Enviamos la respuesta como un json.
@@ -53,18 +58,61 @@ router.get("/", async (req, res) => {
  http://localhost:3000/book?limit=10&page=4 */
 
 //  ------------------------------------------------------------------------------------------
-
-//  Endpoint para ordenar los datos recibidos de los crypto en funcion del número de monedas en circulación:
-
 router.get("/coins", async (req, res) => {
-  // Si funciona ...
-  res.send("Crypto coins");
-
   try {
-    // Si falla ...
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const order = req.query.order || "desc";
+    const min = parseInt(req.query.min);
+    const max = parseInt(req.query.max);
+
+    // Validación de datos
+    if (order !== "asc" && order !== "desc") {
+      return res.status(400).send("Orden no correcto. Indica el orden con asc || desc");
+    }
+
+    if (isNaN(min) || isNaN(max) || min >= max) {
+      return res.status(400).send("Los valores mínimos y máximos deben ser proporcionados y deben ser números y el mínimo debe ser menor que el máximo");
+    }
+
+    const cryptoList = await Crypto.find({}).lean();
+
+    if (cryptoList?.length) {
+      const formattedCryptoList = cryptoList.map((crypto) => {
+        const circulatingSupply = crypto.marketCap / crypto.price;
+        return {
+          ...crypto,
+          circulatingSupply,
+        };
+      });
+
+      const filteredCryptoList = formattedCryptoList.filter((crypto) => {
+        return crypto.circulatingSupply > min && crypto.circulatingSupply < max;
+      });
+
+      const orderedCryptoList = order === "asc" ? filteredCryptoList.sort((a, b) => a.circulatingSupply - b.circulatingSupply) : filteredCryptoList.sort((a, b) => b.circulatingSupply - a.circulatingSupply);
+
+      const count = orderedCryptoList.length;
+      const start = (page - 1) * limit;
+      const end = page * limit;
+      const pagedCryptoList = orderedCryptoList.slice(start, end);
+
+      const totalPages = Math.ceil(count / limit);
+
+      const response = {
+        totalItems: count,
+        totalPages,
+        currentPage: page,
+        totalItemPage: pagedCryptoList.length,
+        cryptoList: pagedCryptoList,
+      };
+      res.json(response);
+    } else {
+      res.status(404).json([]);
+    }
   } catch (error) {
     console.error(error);
-    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+    res.status(500).json(error);
   }
 });
 
@@ -76,14 +124,31 @@ router.get("/sorted-by-date", async (req, res) => {
   // Si funciona ...
 
   try {
+    const page = req.query.page;
+    const limit = parseInt(req.query.limit);
     const order = req.query.order;
-
-    if (order && order !== "asc" && order !== "desc") {
+    if (order !== "asc" && order !== "desc") {
       res.status(400).json({});
     } else {
-      const cryptoListOrder = await Crypto.find().sort({ created_at: order });
-      if (cryptoListOrder?.length) {
-        res.json(cryptoListOrder);
+      const totalElements = await Crypto.countDocuments();
+      if (totalElements) {
+        const totalPagesByLimit = Math.ceil(totalElements / limit);
+        const cryptoListOrder = await Crypto.find()
+          .sort({ created_at: order })
+          .limit(limit)
+          .skip((page - 1) * limit);
+        if (cryptoListOrder?.length) {
+          const response = {
+            totalItems: totalElements,
+            totalPages: totalPagesByLimit,
+            currentPage: page,
+            totalItemPage: limit,
+            data: cryptoListOrder,
+          };
+          res.json(response);
+        } else {
+          res.status(404).json([]);
+        }
       } else {
         res.status(404).json([]);
       }
@@ -102,48 +167,99 @@ router.get("/sorted-by-date", async (req, res) => {
 
 router.get("/sorted-by-marketcap", async (req, res) => {
   // Si funciona ...
-
   try {
-    const order = req.query.order;
+    const page = req.query.page || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const order = req.query.order || "desc";
+    const min = req.query.min;
+    const max = req.query.max;
+    const skip = (page - 1) * limit;
 
-    if (order && order !== "asc" && order !== "desc") {
-      res.status(400).json({});
-    } else {
-      const cryptoListOrder = await Crypto.find().sort({ marketCap: order });
-      if (cryptoListOrder?.length) {
-        res.json(cryptoListOrder);
-      } else {
-        res.status(404).json([]);
-      }
+    // Validación de datos
+    if (order !== "asc" && order !== "desc") {
+      return res.status(400).send("Orden no correcto. Indica el orden con asc || desc");
     }
-    // Si falla ...
+    if (!min || !max || isNaN(parseInt(min)) || isNaN(parseInt(max))) {
+      return res.status(400).send("Los valores mínimos y máximos deben ser proporcionados y deben ser números");
+    }
+
+    if (parseInt(min) >= parseInt(max)) {
+      return res.status(400).send("El mínimo debe ser menor que el máximo");
+    }
+
+    const count = await Crypto.countDocuments({ marketCap: { $gt: min, $lt: max } });
+    const cryptoList = await Crypto.find({ marketCap: { $gt: min, $lt: max } })
+      .sort({ marketCap: order })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPages = Math.ceil(count / limit);
+
+    if (cryptoList?.length) {
+      const response = {
+        totalItems: count,
+        totalPages,
+        currentPage: parseInt(page),
+        totalItemPage: cryptoList.length,
+        cryptoList,
+      };
+      res.json(response);
+    } else {
+      res.status(404).json([]);
+    }
   } catch (error) {
     console.error(error);
-    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+    res.status(500).json(error);
   }
 });
 
 //  ------------------------------------------------------------------------------------------
 
 //  Endpoint para ordenar los datos recibidos de los crypto en función de su price range:
-
 router.get("/price-range", async (req, res) => {
-  // Si funciona ...
   try {
-    const min = parseInt(req.query.min);
-    const max = parseInt(req.query.max);
+    const page = req.query.page || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const order = req.query.order || "desc";
+    const min = req.query.min;
+    const max = req.query.max;
+    const skip = (page - 1) * limit;
 
-    const sortedCryptoListPriceRange = await Crypto.find({ price: { $gt: min, $lt: max } });
+    // Validación de datos
+    if (order !== "asc" && order !== "desc") {
+      return res.status(400).send("Orden no correcto. Indica el orden con asc || desc");
+    }
+    if (!min || !max || isNaN(parseInt(min)) || isNaN(parseInt(max))) {
+      return res.status(400).send("Los valores mínimos y máximos deben ser proporcionados y deben ser números");
+    }
 
-    if (sortedCryptoListPriceRange?.length > 1) {
-      res.json(sortedCryptoListPriceRange);
+    if (parseInt(min) >= parseInt(max)) {
+      return res.status(400).send("El mínimo debe ser menor que el máximo");
+    }
+
+    const count = await Crypto.countDocuments({ price: { $gt: min, $lt: max } });
+    const cryptoList = await Crypto.find({ price: { $gt: min, $lt: max } })
+      .sort({ price: order })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPages = Math.ceil(count / limit);
+
+    if (cryptoList?.length) {
+      const response = {
+        totalItems: count,
+        totalPages,
+        currentPage: parseInt(page),
+        totalItemPage: cryptoList.length,
+        cryptoList,
+      };
+      res.json(response);
     } else {
       res.status(404).json([]);
     }
-    // Si falla ...
   } catch (error) {
     console.error(error);
-    res.status(500).json(error); //  Devolvemos un código 500 de error si falla el reseteo de datos y el error.
+    res.status(500).json(error);
   }
 });
 
@@ -249,8 +365,9 @@ price: 2230.16}
 router.delete("/reset", async (req, res) => {
   // Si funciona el reseteo...
   try {
-    await cryptoSeed();
+    const cryptoList = await cryptoSeed();
     res.send("Datos Crypto reseteados");
+    res.json(cryptoList);
 
     // Si falla el reseteo...
   } catch (error) {
