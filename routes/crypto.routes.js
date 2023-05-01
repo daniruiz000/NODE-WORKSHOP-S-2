@@ -399,9 +399,8 @@ price: 2230.16}
 router.delete("/reset", async (req, res) => {
   // Si funciona el reseteo...
   try {
-    const cryptoList = await cryptoSeed();
+    await cryptoSeed();
     res.send("Datos Crypto reseteados");
-    res.json(cryptoList);
 
     // Si falla el reseteo...
   } catch (error) {
